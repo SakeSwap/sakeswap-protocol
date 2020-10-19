@@ -24,6 +24,7 @@ https://sakeswap.finance. Feel free to read the code. More details coming soon.
 - SakeSwapPair init code hash - `b2b53dca60cae1d1f93f64d80703b888689f28b63c483459183f2f4271fa0308`
 - STokenMaster - https://etherscan.io/address/0x3a417237364FBE95955eDf0B7351dc9c44E59FC7
 - SakeSwapBatchTrade - https://etherscan.io/address/0xc8B227Ae84A162744465007c38240B367928D5F8
+- SakeMasterV2 - https://etherscan.io/address/0xbfb71eeb4d41af889a8b4dbc2c82e83e6d6a99ec
 
 ## License
 
