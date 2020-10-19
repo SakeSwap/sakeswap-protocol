@@ -7,18 +7,20 @@ const MockERC20 = artifacts.require('MockERC20');
 const SakeSwapPair = artifacts.require('SakeSwapPair');
 const SakeSwapFactory = artifacts.require('SakeSwapFactory');
 const STokenMaster = artifacts.require('STokenMaster');
+const SakeMasterV2 = artifacts.require('SakeMasterV2');
 
 const TOTAL_SUPPLY = 10000000;
 const LP_SUPPLY    = 1000000;
 
-contract('SakeVoterProxy', ([alice, bob, carol, dev, minter]) => {
+contract('SakeVoterProxy', ([alice, bob, carol, dev, admin, sakefee, sakeMaker, minter]) => {
     beforeEach(async () => {
         this.sakeToken = await SakeToken.new({ from: alice });
         await this.sakeToken.mint(minter, TOTAL_SUPPLY, { from: alice });
-        this.sakeMaster = await SakeMaster.new(this.sakeToken.address, dev, '1000', '0', { from: alice });
         this.SakeBar = await SakeBar.new(this.sakeToken.address,{ from: alice });
         this.sTokenMaster = await STokenMaster.new(this.sakeToken.address, bob, carol, '200', '10', '0', '300000', { from: alice });
-        this.sakeVoterProxy = await SakeVoterProxy.new(this.sakeToken.address, this.sakeMaster.address,this.SakeBar.address, this.sTokenMaster.address,{ from: alice });
+        this.sakeMaster = await SakeMaster.new(this.sakeToken.address, dev, '1000', '0', { from: alice });
+        this.sakeMasterV2 = await SakeMasterV2.new(this.sakeToken.address, admin, sakeMaker, sakefee, '0', { from: alice });
+        this.sakeVoterProxy = await SakeVoterProxy.new(this.sakeToken.address, this.SakeBar.address, this.sTokenMaster.address, this.sakeMaster.address, this.sakeMasterV2.address,{ from: alice });
     });
 
     it('check totalSupply', async () => {
@@ -51,32 +53,16 @@ contract('SakeVoterProxy', ([alice, bob, carol, dev, minter]) => {
     });
 
     it('check votePools api', async () => {
-        // assert.equal((await this.sakeVoterProxy.getVotePoolNum()).valueOf(), '5');
-        // assert.equal((await this.sakeVoterProxy.getVotePoolId(1)).valueOf(), '32');
-        await expectRevert(this.sakeVoterProxy.addVotePool(5,{ from: bob }),'Not Owner');
-        // assert.equal((await this.sakeVoterProxy.getVotePoolNum()).valueOf(), '5');
-        this.sakeVoterProxy.addVotePool('5', { from: alice });
-        // assert.equal((await this.sakeVoterProxy.getVotePoolNum()).valueOf(), '6');
-        // assert.equal((await this.sakeVoterProxy.getVotePoolId(3)).valueOf(), '34');
-        // assert.equal((await this.sakeVoterProxy.getVotePoolId(5)).valueOf(), '5');
-        await expectRevert(this.sakeVoterProxy.delVotePool('5', { from: bob }),'Not Owner');
-        // assert.equal((await this.sakeVoterProxy.getVotePoolNum()).valueOf(), '6');
-        this.sakeVoterProxy.delVotePool('5', { from: alice });
-        // assert.equal((await this.sakeVoterProxy.getVotePoolNum()).valueOf(), '5');
-        // assert.equal((await this.sakeVoterProxy.getVotePoolId(2)).valueOf(), '33');
-        // this.sakeVoterProxy.addVotePool('9', { from: alice });
-        // assert.equal((await this.sakeVoterProxy.getVotePoolNum()).valueOf(), '6');
-        // assert.equal((await this.sakeVoterProxy.getVotePoolId(5)).valueOf(), '9');
+        await expectRevert(this.sakeVoterProxy.addV2VotePool(5,{ from: bob }),'Not Owner');
+        await expectRevert(this.sakeVoterProxy.delV2VotePool(5,{ from: bob }),'Not Owner');
         for(i=50;i<100;i++)
         {
-            this.sakeVoterProxy.addVotePool(i, { from: alice });
-            this.sakeVoterProxy.addStlVotePool(i, { from: alice });
+            this.sakeVoterProxy.addV2VotePool(i, { from: alice });
         }
         //console.log("get total1 ",(await this.sakeVoterProxy.totalSupply()).valueOf());
         for(i=50;i<100;i++)
         {
-            this.sakeVoterProxy.delVotePool(i, { from: alice });
-            this.sakeVoterProxy.delStlVotePool(i, { from: alice });
+            this.sakeVoterProxy.delV2VotePool(i, { from: alice });
         }
         //console.log("get total2 ",(await this.sakeVoterProxy.totalSupply()).valueOf());
     });
@@ -89,6 +75,9 @@ contract('SakeVoterProxy', ([alice, bob, carol, dev, minter]) => {
         this.factory34 = await SakeSwapFactory.new(alice, { from: alice });
         this.factory100 = await SakeSwapFactory.new(alice, { from: alice });
         this.factory101 = await SakeSwapFactory.new(alice, { from: alice });
+        this.factory102 = await SakeSwapFactory.new(alice, { from: alice });
+        this.factory103 = await SakeSwapFactory.new(alice, { from: alice });
+        this.factory104 = await SakeSwapFactory.new(alice, { from: alice });
         await this.sakeToken.transferOwnership(this.sakeMaster.address, { from: alice });
         this.token0 = await MockERC20.new('TToken', 'TOKEN0', TOTAL_SUPPLY, { from: minter });
         this.lp0 = await SakeSwapPair.at((await this.factory0.createPair(this.token0.address, this.sakeToken.address)).logs[0].args.pair);
@@ -125,10 +114,12 @@ contract('SakeVoterProxy', ([alice, bob, carol, dev, minter]) => {
         await this.lp0.approve(this.sakeMaster.address, '10000', { from: minter });
         await this.sakeMaster.deposit(0, '10000', { from: minter });
         //sqrt(6020000)
+        //console.log("get minter balanceOf0",(await this.sakeVoterProxy.balanceOf(minter)).valueOf());
         assert.equal((await this.sakeVoterProxy.balanceOf(minter)).valueOf(), '2453');
         await this.lp32.approve(this.sakeMaster.address, '20000', { from: minter });
         await this.sakeMaster.deposit(32, '10000', { from: minter });
         //sqrt(6040000)
+        //console.log("get minter balanceOf1",(await this.sakeVoterProxy.balanceOf(minter)).valueOf());
         assert.equal((await this.sakeVoterProxy.balanceOf(minter)).valueOf(), '2457');
 
         await this.lp0.transfer(bob, '20000', { from: minter });
@@ -163,17 +154,17 @@ contract('SakeVoterProxy', ([alice, bob, carol, dev, minter]) => {
         await this.sakeMaster.deposit(35, '20000', { from: bob });
         //sqrt(80000)
         assert.equal((await this.sakeVoterProxy.balanceOf(bob)).valueOf(), '282');
-        //add votepool 35
-        await this.sakeVoterProxy.addVotePool('35', { from: alice });
-        //sqrt(120000)
-        assert.equal((await this.sakeVoterProxy.balanceOf(bob)).valueOf(), '346');
-        await this.sakeMaster.withdraw(35, '10000', { from: bob });
-        //sqrt(100000)
-        assert.equal((await this.sakeVoterProxy.balanceOf(bob)).valueOf(), '316');
-        //del votepool 35
-        await this.sakeVoterProxy.delVotePool('35', { from: alice });
-        //sqrt(80000)
-        assert.equal((await this.sakeVoterProxy.balanceOf(bob)).valueOf(), '282');
+        // //add votepool 35
+        // await this.sakeVoterProxy.addVotePool('35', { from: alice });
+        // //sqrt(120000)
+        // assert.equal((await this.sakeVoterProxy.balanceOf(bob)).valueOf(), '346');
+        // await this.sakeMaster.withdraw(35, '10000', { from: bob });
+        // //sqrt(100000)
+        // assert.equal((await this.sakeVoterProxy.balanceOf(bob)).valueOf(), '316');
+        // //del votepool 35
+        // await this.sakeVoterProxy.delVotePool('35', { from: alice });
+        // //sqrt(80000)
+        // assert.equal((await this.sakeVoterProxy.balanceOf(bob)).valueOf(), '282');
 
         // test xsake voter
         //bob 20000 sake , 40000 lp_sake 
@@ -214,26 +205,77 @@ contract('SakeVoterProxy', ([alice, bob, carol, dev, minter]) => {
         //voter = sqrt(2*40000+2*10000+1*10000+1*10000)
         assert.equal((await this.sakeVoterProxy.balanceOf(bob)).valueOf(), '346');
 
-         //test add stpool
-        this.tokenst1 = await MockERC20.new('ST1Token', 'TOKENST', TOTAL_SUPPLY, { from: minter });
-        this.lpst1 = await SakeSwapPair.at((await this.factory101.createPair(this.tokenst1.address, this.sakeToken.address)).logs[0].args.pair);
-        await this.tokenst1.transfer(this.lpst1.address, LP_SUPPLY, { from: minter });
-        await this.sakeToken.transfer(this.lpst1.address, LP_SUPPLY, { from: minter });
-        await this.lpst1.mint(minter);
-        await this.sTokenMaster.add('100', this.lpst1.address, this.tokenst1.address, false, { from: bob });       
-        await this.lpst1.transfer(bob, '10000', { from: minter });
-        await this.tokenst1.transfer(bob, '10000', { from: minter });
-        await this.lpst1.approve(this.sTokenMaster.address, '10000', { from: bob });
-        await this.tokenst1.approve(this.sTokenMaster.address, '10000', { from: bob });
-        await this.sTokenMaster.deposit(1, '10000', '10000',{ from: bob });
+        //  //test add stpool
+        // this.tokenst1 = await MockERC20.new('ST1Token', 'TOKENST', TOTAL_SUPPLY, { from: minter });
+        // this.lpst1 = await SakeSwapPair.at((await this.factory101.createPair(this.tokenst1.address, this.sakeToken.address)).logs[0].args.pair);
+        // await this.tokenst1.transfer(this.lpst1.address, LP_SUPPLY, { from: minter });
+        // await this.sakeToken.transfer(this.lpst1.address, LP_SUPPLY, { from: minter });
+        // await this.lpst1.mint(minter);
+        // await this.sTokenMaster.add('100', this.lpst1.address, this.tokenst1.address, false, { from: bob });       
+        // await this.lpst1.transfer(bob, '10000', { from: minter });
+        // await this.tokenst1.transfer(bob, '10000', { from: minter });
+        // await this.lpst1.approve(this.sTokenMaster.address, '10000', { from: bob });
+        // await this.tokenst1.approve(this.sTokenMaster.address, '10000', { from: bob });
+        // await this.sTokenMaster.deposit(1, '10000', '10000',{ from: bob });
+        // //console.log("get bob3 voter",(await this.sakeVoterProxy.balanceOf(bob)).valueOf());
+        // await this.sakeVoterProxy.addStlVotePool('1', { from: alice });
+        // //voter = sqrt(2*40000+2*10000+2*10000+1*10000+1*10000)
+        // //console.log("get bob4 voter",(await this.sakeVoterProxy.balanceOf(bob)).valueOf());
+        // assert.equal((await this.sakeVoterProxy.balanceOf(bob)).valueOf(), '374');
+        // await this.sakeVoterProxy.delStlVotePool('1', { from: alice });
+        // //voter = sqrt(2*40000+2*10000+1*10000+1*10000)
+        // //console.log("get bob5 voter",(await this.sakeVoterProxy.balanceOf(bob)).valueOf());
+        // assert.equal((await this.sakeVoterProxy.balanceOf(bob)).valueOf(), '346');
+
+         //test masterV2
+        this.tokenst2 = await MockERC20.new('ST2Token', 'TOKENST', TOTAL_SUPPLY, { from: minter });
+        this.lpst2 = await SakeSwapPair.at((await this.factory102.createPair(this.tokenst2.address, this.sakeToken.address)).logs[0].args.pair);
+        await this.tokenst2.transfer(this.lpst2.address, LP_SUPPLY, { from: minter });
+        await this.sakeToken.transfer(this.lpst2.address, LP_SUPPLY, { from: minter });
+        await this.lpst2.mint(minter);
+        await this.sakeMasterV2.setSakePerBlockYieldFarming('5', false,{ from: admin });
+        await this.sakeMasterV2.setSakePerBlockTradeMining('10', false,{ from: admin });
+        await this.sakeMasterV2.setWithdrawInterval('1', { from: admin });
+        await this.sakeMasterV2.add('100', '100', this.lpst2.address, this.tokenst2.address, false, { from: admin });       
+        await this.lpst2.transfer(bob, '10000', { from: minter });
+        await this.tokenst2.transfer(bob, '10000', { from: minter });
+        await this.lpst2.approve(this.sakeMasterV2.address, '10000', { from: bob });
+        await this.tokenst2.approve(this.sakeMasterV2.address, '10000', { from: bob });
+        await this.sakeMasterV2.deposit(0, '10000', '10000',{ from: bob });
         //console.log("get bob3 voter",(await this.sakeVoterProxy.balanceOf(bob)).valueOf());
-        await this.sakeVoterProxy.addStlVotePool('1', { from: alice });
+        await this.sakeVoterProxy.addV2VotePool('0', { from: alice });
         //voter = sqrt(2*40000+2*10000+2*10000+1*10000+1*10000)
         //console.log("get bob4 voter",(await this.sakeVoterProxy.balanceOf(bob)).valueOf());
         assert.equal((await this.sakeVoterProxy.balanceOf(bob)).valueOf(), '374');
-        await this.sakeVoterProxy.delStlVotePool('1', { from: alice });
+        await this.sakeVoterProxy.delV2VotePool('0', { from: alice });
         //voter = sqrt(2*40000+2*10000+1*10000+1*10000)
         //console.log("get bob5 voter",(await this.sakeVoterProxy.balanceOf(bob)).valueOf());
         assert.equal((await this.sakeVoterProxy.balanceOf(bob)).valueOf(), '346');
+
+        this.tokenst3 = await MockERC20.new('ST3Token', 'TOKENST', TOTAL_SUPPLY, { from: minter });
+        this.lpst3 = await SakeSwapPair.at((await this.factory103.createPair(this.tokenst3.address, this.sakeToken.address)).logs[0].args.pair);
+        await this.tokenst3.transfer(this.lpst3.address, LP_SUPPLY, { from: minter });
+        await this.sakeToken.transfer(this.lpst3.address, LP_SUPPLY, { from: minter });
+        await this.lpst3.mint(minter);
+        await this.sakeMasterV2.add('100', '100', this.lpst3.address, this.tokenst3.address, false, { from: admin });       
+        await this.lpst3.transfer(bob, '10000', { from: minter });
+        await this.tokenst3.transfer(bob, '10000', { from: minter });
+        await this.lpst3.approve(this.sakeMasterV2.address, '10000', { from: bob });
+        await this.tokenst3.approve(this.sakeMasterV2.address, '10000', { from: bob });
+        await this.sakeMasterV2.deposit(1, '10000', '10000',{ from: bob });
+        this.tokenst4 = await MockERC20.new('ST4Token', 'TOKENST', TOTAL_SUPPLY, { from: minter });
+        this.lpst4 = await SakeSwapPair.at((await this.factory104.createPair(this.tokenst4.address, this.sakeToken.address)).logs[0].args.pair);
+        await this.tokenst4.transfer(this.lpst4.address, LP_SUPPLY, { from: minter });
+        await this.sakeToken.transfer(this.lpst4.address, LP_SUPPLY, { from: minter });
+        await this.lpst4.mint(minter);
+        await this.sakeMasterV2.add('100', '100', this.lpst4.address, this.tokenst4.address, false, { from: admin });       
+        await this.lpst4.transfer(bob, '10000', { from: minter });
+        await this.tokenst4.transfer(bob, '10000', { from: minter });
+        await this.lpst4.approve(this.sakeMasterV2.address, '10000', { from: bob });
+        await this.tokenst4.approve(this.sakeMasterV2.address, '10000', { from: bob });
+        await this.sakeMasterV2.deposit(2, '10000', '10000',{ from: bob });
+        //voter = sqrt(2*40000+2*10000+2*10000+1*10000+1*10000)
+        //console.log("get bob5 voter",(await this.sakeVoterProxy.balanceOf(bob)).valueOf());
+        assert.equal((await this.sakeVoterProxy.balanceOf(bob)).valueOf(), '374');
     });
 });

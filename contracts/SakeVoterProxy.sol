@@ -7,6 +7,7 @@ import "./sakeswap/interfaces/ISakeSwapPair.sol";
 import "./SakeMaster.sol";
 import "./SakeBar.sol";
 import "./STokenMaster.sol";
+import "./SakeMasterV2.sol";
 
 struct IndexValue {
     uint256 keyIndex;
@@ -75,15 +76,18 @@ library IterableMapping {
 
 contract SakeVoterProxy {
     using SafeMath for uint256;
-    ItMap public voteLpPoolMap;
-    ItMap public voteStPoolMap;
+    ItMap public voteLpPoolMap; //v1 pool
+    ItMap public voteV2PoolMap; //v2 pool
+    ItMap public voteStlPoolMap; //stoken pool
     // Apply library functions to the data type.
     using IterableMapping for ItMap;
 
     IERC20 public votes;
-    SakeMaster public chef;
     SakeBar public bar;
-    STokenMaster public stm;
+    STokenMaster public stoken;
+    SakeMaster public masterV1;
+    SakeMasterV2 public masterV2;
+
     address public owner;
     uint256 public lpPow;
     uint256 public balancePow;
@@ -97,14 +101,16 @@ contract SakeVoterProxy {
 
     constructor(
         address _tokenAddr,
-        address _masterAddr,
         address _barAddr,
-        address _stokenAddr
+        address _stoken,
+        address _masterAddr,
+        address _masterV2Addr
     ) public {
         votes = IERC20(_tokenAddr);
-        chef = SakeMaster(_masterAddr);
         bar = SakeBar(_barAddr);
-        stm = STokenMaster(_stokenAddr);
+        stoken = STokenMaster(_stoken);
+        masterV1 = SakeMaster(_masterAddr);
+        masterV2 = SakeMasterV2(_masterV2Addr);
         owner = msg.sender;
         voteLpPoolMap.insert(voteLpPoolMap.size, uint256(0));
         voteLpPoolMap.insert(voteLpPoolMap.size, uint256(32));
@@ -112,7 +118,11 @@ contract SakeVoterProxy {
         voteLpPoolMap.insert(voteLpPoolMap.size, uint256(34));
         voteLpPoolMap.insert(voteLpPoolMap.size, uint256(36));
         voteLpPoolMap.insert(voteLpPoolMap.size, uint256(42));
-        voteStPoolMap.insert(voteStPoolMap.size, uint256(0));
+        voteV2PoolMap.insert(voteV2PoolMap.size, uint256(2));
+        voteV2PoolMap.insert(voteV2PoolMap.size, uint256(4));
+        voteV2PoolMap.insert(voteV2PoolMap.size, uint256(5));
+        voteV2PoolMap.insert(voteV2PoolMap.size, uint256(6));
+        voteStlPoolMap.insert(voteStlPoolMap.size, uint256(0));
         lpPow = 2;
         balancePow = 1;
         stakePow = 1;
@@ -144,41 +154,57 @@ contract SakeVoterProxy {
         uint256 voterTotal = 0;
         uint256 _vCtSakes = 0;
         uint256 _vTmpLpPoolId = 0;
-        uint256 _vTmpSlpPoolId = 0;
-        bool jump_flag = false;
+        uint256 _vTmpV2PoolId = 0;
+        bool jumpFlag = false;
         IERC20 _vLpToken;
-        IERC20 _vStlToken;
-        for (uint256 i = voteLpPoolMap.iterateStart(); voteLpPoolMap.iterateValid(i); i = voteLpPoolMap.iterateNext(i)) {
+        IERC20 _vLp2Token;
+        for (
+            uint256 i = voteLpPoolMap.iterateStart();
+            voteLpPoolMap.iterateValid(i);
+            i = voteLpPoolMap.iterateNext(i)
+        ) {
             //count lp contract sakenums
             (, _vTmpLpPoolId) = voteLpPoolMap.iterateGet(i);
-            if (chef.poolLength() > _vTmpLpPoolId) {
-                (_vLpToken, , , ) = chef.poolInfo(_vTmpLpPoolId);
+            if (masterV1.poolLength() > _vTmpLpPoolId) {
+                (_vLpToken, , , ) = masterV1.poolInfo(_vTmpLpPoolId);
                 _vCtSakes = _vCtSakes.add(votes.balanceOf(address(_vLpToken)));
             }
         }
-        for (uint256 j = voteStPoolMap.iterateStart(); voteStPoolMap.iterateValid(j); j = voteStPoolMap.iterateNext(j)) {
+        for (
+            uint256 j = voteV2PoolMap.iterateStart();
+            voteV2PoolMap.iterateValid(j);
+            j = voteV2PoolMap.iterateNext(j)
+        ) {
             //count slp contract sakenums
-            (, _vTmpSlpPoolId) = voteStPoolMap.iterateGet(j);
-            if (stm.poolLength() > _vTmpSlpPoolId) {
-                (_vStlToken, , , , , , ) = stm.poolInfo(_vTmpSlpPoolId);
-                jump_flag = false;
-                for (uint256 i = voteLpPoolMap.iterateStart(); voteLpPoolMap.iterateValid(i); i = voteLpPoolMap.iterateNext(i)) {
+            (, _vTmpV2PoolId) = voteV2PoolMap.iterateGet(j);
+            if (masterV2.poolLength() > _vTmpV2PoolId) {
+                (_vLp2Token, , , , , , ) = masterV2.poolInfo(_vTmpV2PoolId);
+                jumpFlag = false;
+                for (
+                    uint256 i = voteLpPoolMap.iterateStart();
+                    voteLpPoolMap.iterateValid(i);
+                    i = voteLpPoolMap.iterateNext(i)
+                ) {
                     //count lp contract sakenums
                     (, _vTmpLpPoolId) = voteLpPoolMap.iterateGet(i);
-                    if (chef.poolLength() > _vTmpLpPoolId) {
-                        (_vLpToken, , , ) = chef.poolInfo(_vTmpLpPoolId);
-                        if(_vLpToken == _vStlToken){
-                            jump_flag = true;
+                    if (masterV1.poolLength() > _vTmpLpPoolId) {
+                        (_vLpToken, , , ) = masterV1.poolInfo(_vTmpLpPoolId);
+                        if (_vLpToken == _vLp2Token) {
+                            jumpFlag = true;
                             break;
                         }
                     }
                 }
-                if(jump_flag == false){
-                    _vCtSakes = _vCtSakes.add(votes.balanceOf(address(_vStlToken)));
+                if (jumpFlag == false) {
+                    _vCtSakes = _vCtSakes.add(votes.balanceOf(address(_vLp2Token)));
                 }
             }
         }
-        voterTotal = votes.totalSupply().sub(bar.totalSupply()).sub(_vCtSakes).mul(balancePow) + _vCtSakes.mul(lpPow) + bar.totalSupply().mul(stakePow);
+        //stoken pool (only eth-sake) have been included
+        voterTotal =
+            votes.totalSupply().sub(bar.totalSupply()).sub(_vCtSakes).mul(balancePow) +
+            _vCtSakes.mul(lpPow) +
+            bar.totalSupply().mul(stakePow);
         if (sqrtEnable == true) {
             return sqrt(voterTotal);
         }
@@ -194,35 +220,61 @@ contract SakeVoterProxy {
         uint256 _vUserSakeNum;
         uint256 _vTmpPoolId;
         IERC20 _vLpToken;
-        IERC20 _vStlToken;
-        for (uint256 i = voteLpPoolMap.iterateStart(); voteLpPoolMap.iterateValid(i); i = voteLpPoolMap.iterateNext(i)) {
+        IERC20 _vLp2Token;
+        IERC20 _vSlpToken;
+        //v1 pool
+        for (
+            uint256 i = voteLpPoolMap.iterateStart();
+            voteLpPoolMap.iterateValid(i);
+            i = voteLpPoolMap.iterateNext(i)
+        ) {
             //user deposit sakenum = user_lptoken*contract_sakenum/contract_lptokens
             (, _vTmpPoolId) = voteLpPoolMap.iterateGet(i);
-            if (chef.poolLength() > _vTmpPoolId) {
-                (_vLpToken, , , ) = chef.poolInfo(_vTmpPoolId);
+            if (masterV1.poolLength() > _vTmpPoolId) {
+                (_vLpToken, , , ) = masterV1.poolInfo(_vTmpPoolId);
                 _vCtLpTotal = ISakeSwapPair(address(_vLpToken)).totalSupply();
                 if (_vCtLpTotal == 0) {
                     continue;
                 }
-                (_vUserLp, ) = chef.userInfo(_vTmpPoolId, _voter);
+                (_vUserLp, ) = masterV1.userInfo(_vTmpPoolId, _voter);
                 _vCtSakeNum = votes.balanceOf(address(_vLpToken));
                 _vUserSakeNum = _vUserLp.mul(_vCtSakeNum).div(_vCtLpTotal);
                 _votes = _votes.add(_vUserSakeNum);
             }
         }
-        for (uint256 i = voteStPoolMap.iterateStart(); voteStPoolMap.iterateValid(i); i = voteStPoolMap.iterateNext(i)) {
+        //v2 pool
+        for (
+            uint256 i = voteV2PoolMap.iterateStart();
+            voteV2PoolMap.iterateValid(i);
+            i = voteV2PoolMap.iterateNext(i)
+        ) {
             //user deposit sakenum = user_lptoken*contract_sakenum/contract_lptokens
-            (, _vTmpPoolId) = voteStPoolMap.iterateGet(i);
-            if (stm.poolLength() > _vTmpPoolId) {
-                (_vStlToken, , , , , , ) = stm.poolInfo(_vTmpPoolId);
-                _vCtLpTotal = ISakeSwapPair(address(_vStlToken)).totalSupply();
+            (, _vTmpPoolId) = voteV2PoolMap.iterateGet(i);
+            if (masterV2.poolLength() > _vTmpPoolId) {
+                (_vLp2Token, , , , , , ) = masterV2.poolInfo(_vTmpPoolId);
+                _vCtLpTotal = ISakeSwapPair(address(_vLp2Token)).totalSupply();
                 if (_vCtLpTotal == 0) {
                     continue;
                 }
-                ( , ,_vUserLp, ) = stm.userInfo(_vTmpPoolId, _voter);
-                _vCtSakeNum = votes.balanceOf(address(_vStlToken));
+                (, , _vUserLp, , , ) = masterV2.userInfo(_vTmpPoolId, _voter);
+                _vCtSakeNum = votes.balanceOf(address(_vLp2Token));
                 _vUserSakeNum = _vUserLp.mul(_vCtSakeNum).div(_vCtLpTotal);
                 _votes = _votes.add(_vUserSakeNum);
+            }
+        }
+        //stokenmaster pool
+        {
+            //user deposit sakenum = user_lptoken*contract_sakenum/contract_lptokens
+            (, _vTmpPoolId) = voteStlPoolMap.iterateGet(0);
+            if (stoken.poolLength() > _vTmpPoolId) {
+                (_vSlpToken, , , , , , ) = stoken.poolInfo(_vTmpPoolId);
+                _vCtLpTotal = ISakeSwapPair(address(_vSlpToken)).totalSupply();
+                if (_vCtLpTotal != 0) {
+                    (, , _vUserLp, ) = stoken.userInfo(_vTmpPoolId, _voter);
+                    _vCtSakeNum = votes.balanceOf(address(_vSlpToken));
+                    _vUserSakeNum = _vUserLp.mul(_vCtSakeNum).div(_vCtLpTotal);
+                    _votes = _votes.add(_vUserSakeNum);
+                }
             }
         }
         _votes = _votes.mul(lpPow) + votes.balanceOf(_voter).mul(balancePow) + bar.balanceOf(_voter).mul(stakePow);
@@ -232,41 +284,29 @@ contract SakeVoterProxy {
         return _votes;
     }
 
-    function addVotePool(uint256 newPoolId) public onlyOwner {
+    function addV2VotePool(uint256 newPoolId) public onlyOwner {
         uint256 _vTmpPoolId;
-        for (uint256 i = voteLpPoolMap.iterateStart(); voteLpPoolMap.iterateValid(i); i = voteLpPoolMap.iterateNext(i)) {
-            (, _vTmpPoolId) = voteLpPoolMap.iterateGet(i);
+        for (
+            uint256 i = voteV2PoolMap.iterateStart();
+            voteV2PoolMap.iterateValid(i);
+            i = voteV2PoolMap.iterateNext(i)
+        ) {
+            (, _vTmpPoolId) = voteV2PoolMap.iterateGet(i);
             require(_vTmpPoolId != newPoolId, "newPoolId already exist");
         }
-        voteLpPoolMap.insert(voteLpPoolMap.size, newPoolId);
-    }
-    
-    function delVotePool(uint256 newPoolId) public onlyOwner {
-        uint256 _vTmpPoolId;
-        for (uint256 i = voteLpPoolMap.iterateStart(); voteLpPoolMap.iterateValid(i); i = voteLpPoolMap.iterateNext(i)) {
-            (, _vTmpPoolId) = voteLpPoolMap.iterateGet(i);
-            if (_vTmpPoolId == newPoolId) {
-                voteLpPoolMap.remove(i);
-                return;
-            }
-        }
+        voteV2PoolMap.insert(voteV2PoolMap.size, newPoolId);
     }
 
-    function addStlVotePool(uint256 newPoolId) public onlyOwner {
+    function delV2VotePool(uint256 newPoolId) public onlyOwner {
         uint256 _vTmpPoolId;
-        for (uint256 i = voteStPoolMap.iterateStart(); voteStPoolMap.iterateValid(i); i = voteStPoolMap.iterateNext(i)) {
-            (, _vTmpPoolId) = voteStPoolMap.iterateGet(i);
-            require(_vTmpPoolId != newPoolId, "newPoolId already exist");
-        }
-        voteStPoolMap.insert(voteStPoolMap.size, newPoolId);
-    }
-    
-    function delStlVotePool(uint256 newPoolId) public onlyOwner {
-        uint256 _vTmpPoolId;
-        for (uint256 i = voteStPoolMap.iterateStart(); voteStPoolMap.iterateValid(i); i = voteStPoolMap.iterateNext(i)) {
-            (, _vTmpPoolId) = voteStPoolMap.iterateGet(i);
+        for (
+            uint256 i = voteV2PoolMap.iterateStart();
+            voteV2PoolMap.iterateValid(i);
+            i = voteV2PoolMap.iterateNext(i)
+        ) {
+            (, _vTmpPoolId) = voteV2PoolMap.iterateGet(i);
             if (_vTmpPoolId == newPoolId) {
-                voteStPoolMap.remove(i);
+                voteV2PoolMap.remove(i);
                 return;
             }
         }
