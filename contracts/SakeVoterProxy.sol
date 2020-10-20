@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0 <0.8.0;
 
-import "./SakeVoterCalc.sol";
+interface ISakeVoterCalc {
+    function balanceOf(address _voter) external view returns (uint256);
+
+    function totalSupply() external view returns (uint256);
+}
 
 contract SakeVoterProxy {
-    SakeVoterCalc public voteCalc;
+    ISakeVoterCalc public voteCalc;
     address public owner;
 
     constructor(address _voteCalcAddr) public {
-        voteCalc = SakeVoterCalc(_voteCalcAddr);
+        voteCalc = ISakeVoterCalc(_voteCalcAddr);
         owner = msg.sender;
     }
 
@@ -39,6 +43,6 @@ contract SakeVoterProxy {
     }
 
     function setCalcAddr(address _calcAddr) public onlyOwner {
-        voteCalc = SakeVoterCalc(_calcAddr);
+        voteCalc = ISakeVoterCalc(_calcAddr);
     }
 }

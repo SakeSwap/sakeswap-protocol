@@ -85,13 +85,13 @@ contract SakeVoterCalc {
     STokenMaster public stoken;
     SakeMaster public masterV1;
     SakeMasterV2 public masterV2;
-    IERC20 public lpSakeEth = IERC20(0xAC10f17627Cd6bc22719CeEBf1fc524C9Cfdc255);
+    IERC20 public lpSakeEth = IERC20(0xAC10f17627Cd6bc22719CeEBf1fc524C9Cfdc255); //SAKE-ETH
 
     address public owner;
-    uint256 public lpPow;
-    uint256 public balancePow;
-    uint256 public stakePow;
-    bool public sqrtEnable;
+    uint256 public lpPow = 2;
+    uint256 public balancePow = 1;
+    uint256 public stakePow = 1;
+    bool public sqrtEnable = true;
 
     modifier onlyOwner() {
         require(owner == msg.sender, "Not Owner");
@@ -117,10 +117,6 @@ contract SakeVoterCalc {
         voteLpPoolMap.insert(voteLpPoolMap.size, 0x838ce8f4Da8b49EA72378427485CF827c08a0abf); //SAKE-DAI
         voteLpPoolMap.insert(voteLpPoolMap.size, 0x49DE2D202fB703999c4D6a7e2dAA2F3700588f40); //SAKE-SUSHI
         voteLpPoolMap.insert(voteLpPoolMap.size, 0x83970b5570E4cb5FC5e21eF9B9F3c4F8A129c2f2); //SAKE-UNI
-        lpPow = 2;
-        balancePow = 1;
-        stakePow = 1;
-        sqrtEnable = true;
     }
 
     function sqrt(uint256 x) public pure returns (uint256 y) {
@@ -221,7 +217,7 @@ contract SakeVoterCalc {
         }
 
         _vBarSakeNum = bar.balanceOf(_voter).mul(sake.balanceOf(address(bar))).div(bar.totalSupply());
-        _votes = _vCtSakeNum.mul(lpPow) + sake.balanceOf(_voter).mul(balancePow) + bar.balanceOf(_voter).mul(stakePow);
+        _votes = _vCtSakeNum.mul(lpPow) + sake.balanceOf(_voter).mul(balancePow) + _vBarSakeNum.mul(stakePow);
         if (sqrtEnable == true) {
             return sqrt(_votes);
         }
@@ -239,7 +235,7 @@ contract SakeVoterCalc {
             (, _vTmpLpAddr) = voteLpPoolMap.iterateGet(i);
             require(_vTmpLpAddr != newLpAddr, "newLpAddr already exist");
         }
-        for (key = voteLpPoolMap.iterateStart(); voteLpPoolMap.iterateValid(key); key++) {
+        for (key = 0; key < voteLpPoolMap.size; key++) {
             if (voteLpPoolMap.contains(key) == false) {
                 break;
             }
