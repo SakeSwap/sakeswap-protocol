@@ -8,7 +8,7 @@ const SakeSwapPair = artifacts.require('SakeSwapPair');
 const SakeSwapFactory = artifacts.require('SakeSwapFactory');
 const STokenMaster = artifacts.require('STokenMaster');
 const SakeMasterV2 = artifacts.require('SakeMasterV2');
-const SakeVoterProxy = artifacts.require('SakeVoterProxy');
+
 const TOTAL_SUPPLY = 10000000;
 const LP_SUPPLY    = 1000000;
 
@@ -21,8 +21,6 @@ contract('SakeVoterCalc', ([alice, bob, carol, dev, admin, sakefee, sakeMaker, m
         this.sakeMaster = await SakeMaster.new(this.sakeToken.address, dev, '1000', '0', { from: alice });
         this.sakeMasterV2 = await SakeMasterV2.new(this.sakeToken.address, admin, sakeMaker, sakefee, '0', { from: alice });
         this.SakeVoterCalc = await SakeVoterCalc.new(this.sakeToken.address, this.SakeBar.address, this.sTokenMaster.address, this.sakeMaster.address, this.sakeMasterV2.address,{ from: alice });
-        this.SakeVoterCalc2 = await SakeVoterCalc.new(this.sakeToken.address, this.SakeBar.address, this.sTokenMaster.address, this.sakeMaster.address, this.sakeMasterV2.address,{ from: alice });
-        this.SakeVoterProxy = await SakeVoterProxy.new(this.SakeVoterCalc.address, { from: alice });
     });
 
     it('check totalSupply', async () => {
@@ -52,7 +50,19 @@ contract('SakeVoterCalc', ([alice, bob, carol, dev, admin, sakefee, sakeMaker, m
         await this.SakeVoterCalc.setPow(2,1,2, { from: alice });
         // totalSupply = //sqrt(10150000)
         assert.equal((await this.SakeVoterCalc.totalSupply()).valueOf(), '3184');
-        assert.equal((await this.SakeVoterProxy.totalSupply()).valueOf(), '3184');
+    });
+
+    it('check votePools api', async () => {
+        tmpToken = await MockERC20.new('TToken', 'TOKEN0', TOTAL_SUPPLY, { from: minter });
+        await expectRevert(this.SakeVoterCalc.addVotePool(tmpToken.address,{ from: bob }),'Not Owner');
+        await expectRevert(this.SakeVoterCalc.delVotePool(tmpToken.address,{ from: bob }),'Not Owner');
+        for(i=50;i<100;i++)
+        {
+            tmpToken = await MockERC20.new('TToken', 'TOKEN0', TOTAL_SUPPLY, { from: minter });
+            this.SakeVoterCalc.addVotePool(tmpToken.address, { from: alice });
+            this.SakeVoterCalc.delVotePool(tmpToken.address, { from: alice });
+        }
+        //console.log("get total2 ",(await this.SakeVoterCalc.totalSupply()).valueOf());
     });
 
     it('check balanceOf', async () => {
@@ -103,7 +113,6 @@ contract('SakeVoterCalc', ([alice, bob, carol, dev, admin, sakefee, sakeMaker, m
         //sqrt(lp 20000*2 + sakebar 10000 + sake 10000)
         //console.log("get bob balanceOf3",(await this.SakeVoterCalc.balanceOf(bob)).valueOf());
         assert.equal((await this.SakeVoterCalc.balanceOf(bob)).valueOf(), '244');
-        assert.equal((await this.SakeVoterProxy.balanceOf(bob)).valueOf(), '244');
         // await this.sakeMaster.withdraw(1, '10000', { from: bob });
         // //no change
         // console.log("get bob balanceOf4",(await this.SakeVoterCalc.balanceOf(bob)).valueOf());
@@ -128,7 +137,6 @@ contract('SakeVoterCalc', ([alice, bob, carol, dev, admin, sakefee, sakeMaker, m
         await this.SakeVoterCalc.addVotePool(this.lpst1.address, { from: alice });
         //voter = sqrt(lp 30000*2 + sakebar 10000 + sake 10000)
         assert.equal((await this.SakeVoterCalc.balanceOf(bob)).valueOf(), '282');
-        assert.equal((await this.SakeVoterProxy.balanceOf(bob)).valueOf(), '282');
         // console.log("get bob balanceOf6",(await this.SakeVoterCalc.balanceOf(bob)).valueOf());
         // console.log("get lp0",this.lp0.address);
         // console.log("get lp0 index",(await this.SakeVoterCalc.getVotePool(this.lp0.address)).valueOf());
@@ -178,35 +186,5 @@ contract('SakeVoterCalc', ([alice, bob, carol, dev, admin, sakefee, sakeMaker, m
         await this.SakeVoterCalc.setSqrtEnable(true, { from: alice });
         //voter = sqrt(2*40000+1*10000+1*10000)
         assert.equal((await this.SakeVoterCalc.balanceOf(bob)).valueOf(), '316');
-        assert.equal((await this.SakeVoterProxy.balanceOf(bob)).valueOf(), '316');
-    });
-
-    it('check setCalcAddr', async () => {
-        await this.sakeToken.transfer(bob, 20000, { from: minter });
-        //sakebar enter -> 10000 xsake , 10000 sake
-        await this.sakeToken.approve(this.SakeBar.address, '20000', { from: bob });
-        await this.SakeBar.enter('20000',{ from: bob });
-        await this.SakeBar.leave('10000',{ from: bob });
-        this.factory0 = await SakeSwapFactory.new(alice, { from: alice });
-        await this.sakeToken.transferOwnership(this.sakeMaster.address, { from: alice });
-        this.token0 = await MockERC20.new('TToken', 'TOKEN0', TOTAL_SUPPLY, { from: minter });
-        this.lp0 = await SakeSwapPair.at((await this.factory0.createPair(this.token0.address, this.sakeToken.address)).logs[0].args.pair);
-        await this.token0.transfer(this.lp0.address, LP_SUPPLY, { from: minter });
-        await this.sakeToken.transfer(this.lp0.address, LP_SUPPLY, { from: minter });
-        await this.lp0.mint(minter);
-        await this.sakeMaster.add('100', this.lp0.address, true);
-        await this.lp0.transfer(bob, '10000', { from: minter });
-        await this.lp0.approve(this.sakeMaster.address, '10000', { from: bob });
-        await this.sakeMaster.deposit(0, '10000', { from: bob });
-        //console.log("get bob balanceOf",(await this.SakeVoterCalc.balanceOf(bob)).valueOf());
-        this.SakeVoterCalc.addVotePool(this.lp0.address, { from: alice });
-        //sqrt(lp 10000*2 + sakebar 10000 + sake 10000)
-        //console.log("get bob balanceOf1",(await this.SakeVoterCalc.balanceOf(bob)).valueOf());
-        assert.equal((await this.SakeVoterProxy.balanceOf(bob)).valueOf(), '200');
-        await this.SakeVoterProxy.setCalcAddr(this.SakeVoterCalc2.address, { from: alice });
-        //sqrt(sakebar 10000 + sake 10000)
-        assert.equal((await this.SakeVoterProxy.balanceOf(bob)).valueOf(), '141');
-        await this.SakeVoterProxy.setCalcAddr(this.SakeVoterCalc.address, { from: alice });
-        assert.equal((await this.SakeVoterProxy.balanceOf(bob)).valueOf(), '200');
     });
 });
