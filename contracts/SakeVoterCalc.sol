@@ -235,7 +235,7 @@ contract SakeVoterCalc {
             (, _vTmpLpAddr) = voteLpPoolMap.iterateGet(i);
             require(_vTmpLpAddr != newLpAddr, "newLpAddr already exist");
         }
-        for (key = 0; key < voteLpPoolMap.size; key++) {
+        for (key = 0; voteLpPoolMap.iterateValid(key); key++) {
             if (voteLpPoolMap.contains(key) == false) {
                 break;
             }
