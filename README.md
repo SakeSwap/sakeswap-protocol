@@ -9,7 +9,7 @@ https://sakeswap.finance. Feel free to read the code. More details coming soon.
 - TimeLock - https://etherscan.io/address/0x643E34976d68A678e56634405CA4d6fC5E52B039
 - DevFunds - https://etherscan.io/address/0xBF168fD05318250cd332405C6c5c0097593657ec
 - SakeLock - https://etherscan.io/address/0x220bb50c03e99Def71971a78dA0698F0155dddC7
-- SakeVote - https://etherscan.io/address/0x0A291AF57DEb09efd3760B8Ca7167207bcE019d6
+- SakeVote - https://etherscan.io/address/0x0e4b5a586b9bc8e4197b79b7fbe8b66e5aebf13a
 - SakeFactory - https://etherscan.io/address/0x75e48C954594d64ef9613AeEF97Ad85370F13807
 - SakeRouter - https://etherscan.io/address/0x9C578b573EdE001b95d51a55A3FAfb45f5608b1f
 - Migrate-uniswap - https://etherscan.io/address/0xca98882ed9d7b56Ca11B66262a2ac09088Fc1172
