@@ -26,6 +26,8 @@ https://sakeswap.finance. Feel free to read the code. More details coming soon.
 - SakeSwapBatchTrade - https://etherscan.io/address/0xc8B227Ae84A162744465007c38240B367928D5F8
 - SakeMasterV2 - https://etherscan.io/address/0xbfb71eeb4d41af889a8b4dbc2c82e83e6d6a99ec
 - SakeSwapMigrator(Migrate UniSwap LP tokens and SushiSwap LP tokens directly to SakeSwap LP tokens) - https://etherscan.io/address/0x7d01adb5336704a44c28aa6274c6687ec9fbc6d2   
+- NSake(NFT) - https://etherscan.io/token/0x209AdB20B0D6115eA69Ef34C7afa4aC6216C2BE2
+- NSakeMaster - https://etherscan.io/address/0x1e54716a606cF6308E9b201882c7722df69411cA
 
 ## License
 
