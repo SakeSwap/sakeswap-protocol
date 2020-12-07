@@ -28,7 +28,7 @@ contract('SakeMaker', ([alice, bar, minter]) => {
     })
 
     it('should set burn ratio successfully', async () => {
-        assert.equal(await this.maker.burnRatio(), 3);
+        assert.equal(await this.maker.burnRatio(), 9);
         await this.maker.setBurnRatio(0, { from: alice });
         assert.equal(await this.maker.burnRatio(), 0);
         await this.maker.setBurnRatio(10, { from: alice });
@@ -39,6 +39,7 @@ contract('SakeMaker', ([alice, bar, minter]) => {
 
     it('should make SAKEs successfully', async () => {
         await this.factory.setFeeTo(this.maker.address, { from: alice });
+        await this.maker.setBurnRatio(3, { from: alice });
         await this.weth.transfer(this.sakeWETH.address, '10000000', { from: minter });
         await this.sake.transfer(this.sakeWETH.address, '10000000', { from: minter });
         await this.sakeWETH.mint(minter);
@@ -119,6 +120,92 @@ contract('SakeMaker', ([alice, bar, minter]) => {
         await this.maker.convert(this.sake.address, this.weth.address);
         assert.equal((await this.sake.balanceOf(bar)).valueOf(), '33155');
         assert.equal((await this.sake.balanceOf(this.blackHoldAddress)).valueOf(), '33093');
+        assert.equal((await this.sakeWETH.balanceOf(this.maker.address)).valueOf(), '0');
+    })
+
+    it('should make SAKEs with boundary burn ratio(10) successfully', async () => {
+        await this.factory.setFeeTo(this.maker.address, { from: alice });
+        await this.maker.setBurnRatio(10, { from: alice });
+        await this.weth.transfer(this.sakeWETH.address, '10000000', { from: minter });
+        await this.sake.transfer(this.sakeWETH.address, '10000000', { from: minter });
+        await this.sakeWETH.mint(minter);
+        await this.weth.transfer(this.wethToken1.address, '10000000', { from: minter });
+        await this.token1.transfer(this.wethToken1.address, '10000000', { from: minter });
+        await this.wethToken1.mint(minter);
+        await this.weth.transfer(this.wethToken2.address, '10000000', { from: minter });
+        await this.token2.transfer(this.wethToken2.address, '10000000', { from: minter });
+        await this.wethToken2.mint(minter);
+        await this.token1.transfer(this.token1Token2.address, '10000000', { from: minter });
+        await this.token2.transfer(this.token1Token2.address, '10000000', { from: minter });
+        await this.token1Token2.mint(minter);
+        // Fake some revenue
+        await this.token1.transfer(this.token1Token2.address, '100000', { from: minter });
+        await this.token2.transfer(this.token1Token2.address, '100000', { from: minter });
+        await this.token1Token2.sync();
+        await this.token1.transfer(this.token1Token2.address, '10000000', { from: minter });
+        await this.token2.transfer(this.token1Token2.address, '10000000', { from: minter });
+        await this.token1Token2.mint(minter);
+        // Maker should have the LP now
+        assert.equal((await this.token1Token2.balanceOf(this.maker.address)).valueOf(), '16528');
+        // After calling convert, bar should have SAKE value at ~1/6 of revenue
+        await this.maker.convert(this.token1.address, this.token2.address);
+        assert.equal((await this.sake.balanceOf(bar)).valueOf(), '0');
+        assert.equal((await this.sake.balanceOf(this.blackHoldAddress)).valueOf(), '32965');
+        assert.equal((await this.token1Token2.balanceOf(this.maker.address)).valueOf(), '0');
+        // Should also work for SAKE-ETH pair
+        await this.sake.transfer(this.sakeWETH.address, '100000', { from: minter });
+        await this.weth.transfer(this.sakeWETH.address, '100000', { from: minter });
+        await this.sakeWETH.sync();
+        await this.sake.transfer(this.sakeWETH.address, '10000000', { from: minter });
+        await this.weth.transfer(this.sakeWETH.address, '10000000', { from: minter });
+        await this.sakeWETH.mint(minter);
+        assert.equal((await this.sakeWETH.balanceOf(this.maker.address)).valueOf(), '16537');
+        await this.maker.convert(this.sake.address, this.weth.address);
+        assert.equal((await this.sake.balanceOf(bar)).valueOf(), '0');
+        assert.equal((await this.sake.balanceOf(this.blackHoldAddress)).valueOf(), '66249');
+        assert.equal((await this.sakeWETH.balanceOf(this.maker.address)).valueOf(), '0');
+    })
+
+    it('should make SAKEs with boundary burn ratio(0) successfully', async () => {
+        await this.factory.setFeeTo(this.maker.address, { from: alice });
+        await this.maker.setBurnRatio(0, { from: alice });
+        await this.weth.transfer(this.sakeWETH.address, '10000000', { from: minter });
+        await this.sake.transfer(this.sakeWETH.address, '10000000', { from: minter });
+        await this.sakeWETH.mint(minter);
+        await this.weth.transfer(this.wethToken1.address, '10000000', { from: minter });
+        await this.token1.transfer(this.wethToken1.address, '10000000', { from: minter });
+        await this.wethToken1.mint(minter);
+        await this.weth.transfer(this.wethToken2.address, '10000000', { from: minter });
+        await this.token2.transfer(this.wethToken2.address, '10000000', { from: minter });
+        await this.wethToken2.mint(minter);
+        await this.token1.transfer(this.token1Token2.address, '10000000', { from: minter });
+        await this.token2.transfer(this.token1Token2.address, '10000000', { from: minter });
+        await this.token1Token2.mint(minter);
+        // Fake some revenue
+        await this.token1.transfer(this.token1Token2.address, '100000', { from: minter });
+        await this.token2.transfer(this.token1Token2.address, '100000', { from: minter });
+        await this.token1Token2.sync();
+        await this.token1.transfer(this.token1Token2.address, '10000000', { from: minter });
+        await this.token2.transfer(this.token1Token2.address, '10000000', { from: minter });
+        await this.token1Token2.mint(minter);
+        // Maker should have the LP now
+        assert.equal((await this.token1Token2.balanceOf(this.maker.address)).valueOf(), '16528');
+        // After calling convert, bar should have SAKE value at ~1/6 of revenue
+        await this.maker.convert(this.token1.address, this.token2.address);
+        assert.equal((await this.sake.balanceOf(bar)).valueOf(), '32965');
+        assert.equal((await this.sake.balanceOf(this.blackHoldAddress)).valueOf(), '0');
+        assert.equal((await this.token1Token2.balanceOf(this.maker.address)).valueOf(), '0');
+        // Should also work for SAKE-ETH pair
+        await this.sake.transfer(this.sakeWETH.address, '100000', { from: minter });
+        await this.weth.transfer(this.sakeWETH.address, '100000', { from: minter });
+        await this.sakeWETH.sync();
+        await this.sake.transfer(this.sakeWETH.address, '10000000', { from: minter });
+        await this.weth.transfer(this.sakeWETH.address, '10000000', { from: minter });
+        await this.sakeWETH.mint(minter);
+        assert.equal((await this.sakeWETH.balanceOf(this.maker.address)).valueOf(), '16537');
+        await this.maker.convert(this.sake.address, this.weth.address);
+        assert.equal((await this.sake.balanceOf(bar)).valueOf(), '66249');
+        assert.equal((await this.sake.balanceOf(this.blackHoldAddress)).valueOf(), '0');
         assert.equal((await this.sakeWETH.balanceOf(this.maker.address)).valueOf(), '0');
     })
 });
