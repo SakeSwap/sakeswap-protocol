@@ -4,11 +4,19 @@ https://sakeswap.finance. Feel free to read the code. More details coming soon.
 
 ## Deployed Contracts
 
+### ON BINANCE SMART CHAIN
+
+- SakeToken - https://bscscan.com/token/0x8bd778b12b15416359a227f0533ce2d91844e1ed
+- SakeMasterV2BSC - https://bscscan.com/address/0xE9a49D65cfd4C8412388b52B882633e72e123907 // Farm contract address
+
+### ON Ethereum
+
 - SakeToken - https://etherscan.io/token/0x066798d9ef0833ccc719076Dab77199eCbd178b0
 - SakeMaster - https://etherscan.io/address/0x0EC1f1573f3a2dB0Ad396c843E6a079e2a53e557
 - TimeLock - https://etherscan.io/address/0x643E34976d68A678e56634405CA4d6fC5E52B039
 - DevFunds - https://etherscan.io/address/0xBF168fD05318250cd332405C6c5c0097593657ec
 - SakeLock - https://etherscan.io/address/0x220bb50c03e99Def71971a78dA0698F0155dddC7
+- SakeLockV2 - https://etherscan.io/address/0xcee58dd9173b596f457e49b390a30b8e85a1d2f0
 - SakeVote - https://etherscan.io/address/0x0e4b5a586b9bc8e4197b79b7fbe8b66e5aebf13a
 - SakeFactory - https://etherscan.io/address/0x75e48C954594d64ef9613AeEF97Ad85370F13807
 - SakeRouter - https://etherscan.io/address/0x9C578b573EdE001b95d51a55A3FAfb45f5608b1f
