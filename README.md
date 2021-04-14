@@ -8,6 +8,12 @@ https://sakeswap.finance. Feel free to read the code. More details coming soon.
 
 - SakeToken - https://bscscan.com/token/0x8bd778b12b15416359a227f0533ce2d91844e1ed
 - SakeMasterV2BSC - https://bscscan.com/address/0xE9a49D65cfd4C8412388b52B882633e72e123907 // Farm contract address
+- SakeSwapFactory - https://bscscan.com/address/0xA534cf041Dcd2C95B4220254A0dCb4B905307Fd8
+- SakeSwapRouter  - https://bscscan.com/address/0x5Ee5aC9F359B5aE622cF9DDD473473FADcD1D5f3
+- SakeBar - https://bscscan.com/address/0xbC83FAdA7D0881F772daaB2B4295F949FA309B59
+- SakeMaker - https://bscscan.com/address/0x5C173db0bBAD4a845D264CC562ea540aE42285F3
+- SakeILOFactory - https://bscscan.com/address/0x067da6f061cD9135F30e5794cd9Be5Ab8A6f0C89
+- init code hash - 47b24f45dffd131e7c4e41f846de0728dd0430490d6b4000a6eeb1be17c01e5
 
 ### ON Ethereum
 
