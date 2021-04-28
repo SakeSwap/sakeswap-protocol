@@ -13,7 +13,7 @@ https://sakeswap.finance. Feel free to read the code. More details coming soon.
 - SakeBar - https://bscscan.com/address/0xbC83FAdA7D0881F772daaB2B4295F949FA309B59
 - SakeMaker - https://bscscan.com/address/0x5C173db0bBAD4a845D264CC562ea540aE42285F3
 - SakeILOFactory - https://bscscan.com/address/0x067da6f061cD9135F30e5794cd9Be5Ab8A6f0C89
-- init code hash - 47b24f45dffd131e7c4e41f846de0728dd0430490d6b4000a6eeb1be17c01e5
+- init code hash - `47b24f45dffd131e7c4e41f846de0728dd0430490d6b4000a6eeb1be17c01e53`
 
 ### ON Ethereum
 
